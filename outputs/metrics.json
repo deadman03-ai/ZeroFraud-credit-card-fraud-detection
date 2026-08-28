@@ -1,0 +1,87 @@
+{
+  "Logistic Regression": {
+    "metrics": {
+      "model": "Logistic Regression",
+      "accuracy": 0.705,
+      "precision": 0.1667,
+      "recall": 0.5263,
+      "f1_score": 0.2532,
+      "roc_auc": 0.6973
+    },
+    "report": {
+      "0": {
+        "precision": 0.9357142857142857,
+        "recall": 0.7237569060773481,
+        "f1-score": 0.8161993769470405,
+        "support": 181.0
+      },
+      "1": {
+        "precision": 0.16666666666666666,
+        "recall": 0.5263157894736842,
+        "f1-score": 0.25316455696202533,
+        "support": 19.0
+      },
+      "accuracy": 0.705,
+      "macro avg": {
+        "precision": 0.5511904761904762,
+        "recall": 0.6250363477755161,
+        "f1-score": 0.5346819669545329,
+        "support": 200.0
+      },
+      "weighted avg": {
+        "precision": 0.862654761904762,
+        "recall": 0.705,
+        "f1-score": 0.7627110690484641,
+        "support": 200.0
+      }
+    }
+  },
+  "Random Forest": {
+    "metrics": {
+      "model": "Random Forest",
+      "accuracy": 0.81,
+      "precision": 0.1935,
+      "recall": 0.3158,
+      "f1_score": 0.24,
+      "roc_auc": 0.704
+    },
+    "report": {
+      "0": {
+        "precision": 0.9230769230769231,
+        "recall": 0.861878453038674,
+        "f1-score": 0.8914285714285715,
+        "support": 181.0
+      },
+      "1": {
+        "precision": 0.1935483870967742,
+        "recall": 0.3157894736842105,
+        "f1-score": 0.24,
+        "support": 19.0
+      },
+      "accuracy": 0.81,
+      "macro avg": {
+        "precision": 0.5583126550868487,
+        "recall": 0.5888339633614423,
+        "f1-score": 0.5657142857142857,
+        "support": 200.0
+      },
+      "weighted avg": {
+        "precision": 0.8537717121588091,
+        "recall": 0.81,
+        "f1-score": 0.8295428571428571,
+        "support": 200.0
+      }
+    }
+  },
+  "Random Forest (tuned threshold)": {
+    "metrics": {
+      "model": "Random Forest (tuned threshold)",
+      "threshold": 0.38,
+      "accuracy": 0.735,
+      "precision": 0.1852,
+      "recall": 0.5263,
+      "f1_score": 0.274,
+      "roc_auc": 0.704
+    }
+  }
+}

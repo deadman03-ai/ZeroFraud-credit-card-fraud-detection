@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Credit Card Fraud Detection — Finding 93 in 1,000</title>
+<meta name="description" content="A machine learning pipeline for detecting credit card fraud in a highly imbalanced dataset, using SMOTE and a threshold-tuned Random Forest classifier.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1220;
+    --panel:#131D30;
+    --panel-2:#0F1729;
+    --line:#223049;
+    --line-soft:#1A2740;
+    --text:#EDF1F7;
+    --muted:#8C9AB3;
+    --blue:#5B93C4;
+    --blue-dim:#4C7EA8;
+    --red:#E1523D;
+    --green:#4FA37B;
+    --amber:#D9A441;
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'IBM Plex Sans', sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--red); color:#fff;}
+  a{color:var(--blue);}
+  img{max-width:100%; display:block;}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 28px;}
+  h1,h2,h3{font-family:var(--font-display); font-weight:600; margin:0 0 .4em;}
+  .eyebrow{
+    font-family:var(--font-mono); font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:14px; display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:''; width:16px; height:1px; background:var(--line); display:inline-block;}
+  section{padding:88px 0; border-bottom:1px solid var(--line-soft);}
+  .lede{color:var(--muted); font-size:17px; max-width:640px;}
+  .mono{font-family:var(--font-mono);}
+  .btn{
+    font-family:var(--font-mono); font-size:13px; letter-spacing:.02em;
+    display:inline-flex; align-items:center; gap:8px; padding:11px 18px;
+    border-radius:6px; border:1px solid var(--line); color:var(--text);
+    text-decoration:none; transition:border-color .15s, background .15s;
+  }
+  .btn:hover{border-color:var(--blue); background:rgba(91,147,196,.08);}
+  .btn.primary{background:var(--text); color:var(--bg); border-color:var(--text);}
+  .btn.primary:hover{background:#fff;}
+  .btn:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, button:focus-visible{
+    outline:2px solid var(--blue); outline-offset:2px;
+  }
+
+  /* ---------- header ---------- */
+  header{
+    position:sticky; top:0; z-index:50; backdrop-filter:blur(10px);
+    background:rgba(11,18,32,.82); border-bottom:1px solid var(--line-soft);
+  }
+  header .wrap{display:flex; align-items:center; justify-content:space-between; padding:16px 28px;}
+  .brand{font-family:var(--font-mono); font-size:14px; color:var(--text); text-decoration:none; display:flex; align-items:center; gap:8px;}
+  .brand .dot{width:8px; height:8px; border-radius:50%; background:var(--red); box-shadow:0 0 8px var(--red);}
+  nav a{font-family:var(--font-mono); font-size:13px; color:var(--muted); text-decoration:none; margin-left:26px;}
+  nav a:hover{color:var(--text);}
+  @media (max-width:640px){ nav{display:none;} }
+
+  /* ---------- hero ---------- */
+  .hero{padding-top:64px; padding-bottom:64px; border-bottom:1px solid var(--line-soft); overflow:hidden;}
+  .hero-inner{display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center;}
+  @media (max-width:860px){ .hero-inner{grid-template-columns:1fr;} }
+  .hero h1{font-size:44px; line-height:1.08; letter-spacing:-.01em;}
+  .hero h1 .accent{color:var(--red);}
+  .hero-stats{display:flex; gap:28px; margin-top:28px; flex-wrap:wrap;}
+  .stat{font-family:var(--font-mono);}
+  .stat .n{font-size:26px; color:var(--text); display:block;}
+  .stat .l{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em;}
+  .hero-ctas{margin-top:32px; display:flex; gap:12px; flex-wrap:wrap;}
+
+  .tx-grid{
+    display:grid; grid-template-columns:repeat(30, 1fr); gap:4px;
+    padding:20px; background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius);
+  }
+  .tx-dot{aspect-ratio:1; border-radius:2px; background:var(--blue-dim); opacity:0; transform:scale(.4);
+    animation:materialize .45s ease-out forwards;}
+  .tx-dot.fraud{background:var(--red); box-shadow:0 0 6px rgba(225,82,61,.55);}
+  @keyframes materialize{ to{opacity:1; transform:scale(1);} }
+  .tx-caption{font-family:var(--font-mono); font-size:12px; color:var(--muted); margin-top:12px; display:flex; justify-content:space-between;}
+  .legend-dot{display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:6px; vertical-align:middle;}
+  @media (prefers-reduced-motion: reduce){
+    .tx-dot{animation:none; opacity:1; transform:none;}
+    html{scroll-behavior:auto;}
+  }
+
+  /* ---------- reveal on scroll ---------- */
+  .reveal{opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease;}
+  .reveal.in-view{opacity:1; transform:none;}
+
+  /* ---------- generic grids/cards ---------- */
+  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:18px;}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  @media (max-width:760px){ .grid-3{grid-template-columns:1fr;} .grid-2{grid-template-columns:1fr;} }
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:24px; transition:border-color .15s;
+  }
+  .card:hover{border-color:var(--blue-dim);}
+  .card h3{font-size:16px;}
+  .card p{color:var(--muted); font-size:14.5px; margin:0;}
+  .card .k{font-family:var(--font-mono); color:var(--amber); font-size:12px; text-transform:uppercase; letter-spacing:.06em;}
+
+  /* ---------- dataset table ---------- */
+  table{width:100%; border-collapse:collapse; font-size:14.5px;}
+  th, td{text-align:left; padding:12px 14px; border-bottom:1px solid var(--line-soft);}
+  th{font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:500;}
+  td.feat{font-family:var(--font-mono); color:var(--text); white-space:nowrap;}
+  td.desc{color:var(--muted);}
+
+  /* ---------- pipeline ---------- */
+  .pipeline{display:flex; flex-direction:column; gap:0; counter-reset:step;}
+  .pl-step{display:grid; grid-template-columns:56px 1fr; gap:20px; padding:20px 0; border-top:1px solid var(--line-soft); position:relative;}
+  .pl-step:first-child{border-top:none;}
+  .pl-num{font-family:var(--font-mono); color:var(--muted); font-size:13px; padding-top:2px;}
+  .pl-num .n{color:var(--text); font-size:20px; display:block;}
+  .pl-step h3{font-size:16px; margin-bottom:6px;}
+  .pl-step p{color:var(--muted); margin:0; font-size:14.5px; max-width:600px;}
+
+  /* ---------- model comparison ---------- */
+  .model-table td, .model-table th{vertical-align:top;}
+  .tag{display:inline-block; font-family:var(--font-mono); font-size:11px; padding:2px 8px; border-radius:20px; margin:2px 4px 2px 0;}
+  .tag.good{background:rgba(79,163,123,.15); color:var(--green); border:1px solid rgba(79,163,123,.35);}
+  .tag.bad{background:rgba(225,82,61,.12); color:var(--red); border:1px solid rgba(225,82,61,.3);}
+  .row-selected{background:rgba(91,147,196,.06);}
+  .row-selected td.feat{color:var(--blue);}
+
+  /* ---------- results ---------- */
+  .metrics-row{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-bottom:36px;}
+  @media (max-width:760px){ .metrics-row{grid-template-columns:1fr;} }
+  .metric-card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:22px;}
+  .metric-card .label{font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);}
+  .metric-card .value{font-family:var(--font-mono); font-size:34px; margin-top:6px;}
+  .metric-card.win .value{color:var(--green);}
+  .metric-card .sub{font-size:13px; color:var(--muted); margin-top:6px;}
+  .plot-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:28px;}
+  @media (max-width:760px){ .plot-grid{grid-template-columns:1fr;} }
+  .plot-card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:14px;}
+  .plot-card img{border-radius:6px;}
+  .plot-card .cap{font-family:var(--font-mono); font-size:12px; color:var(--muted); margin-top:10px; text-align:center;}
+
+  /* ---------- demo ---------- */
+  .demo-panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:32px;
+    display:grid; grid-template-columns:1fr 1fr; gap:36px;
+  }
+  @media (max-width:800px){ .demo-panel{grid-template-columns:1fr;} }
+  .field{margin-bottom:18px;}
+  .field label{display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:12px; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:.05em;}
+  .field label .val{color:var(--text); text-transform:none;}
+  input[type=range]{width:100%; accent-color:var(--red);}
+  input[type=number], select{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:10px 12px; border-radius:6px; font-family:var(--font-mono); font-size:14px;
+  }
+  .demo-result{display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; border-left:1px solid var(--line-soft); padding-left:36px;}
+  @media (max-width:800px){ .demo-result{border-left:none; border-top:1px solid var(--line-soft); padding-left:0; padding-top:28px;} }
+  .proba{font-family:var(--font-mono); font-size:56px; line-height:1;}
+  .verdict{font-family:var(--font-mono); font-size:14px; letter-spacing:.08em; text-transform:uppercase; margin-top:14px; padding:8px 18px; border-radius:20px;}
+  .verdict.flag{background:rgba(225,82,61,.15); color:var(--red); border:1px solid rgba(225,82,61,.4);}
+  .verdict.clear{background:rgba(79,163,123,.15); color:var(--green); border:1px solid rgba(79,163,123,.4);}
+  .meter{width:100%; height:6px; background:var(--panel-2); border-radius:4px; margin-top:20px; overflow:hidden; border:1px solid var(--line);}
+  .meter-fill{height:100%; background:linear-gradient(90deg, var(--green), var(--amber), var(--red)); width:0%; transition:width .25s ease;}
+  .demo-note{grid-column:1 / -1; font-size:13px; color:var(--muted); margin-top:4px; border-top:1px solid var(--line-soft); padding-top:18px;}
+
+  /* ---------- limitations / future ---------- */
+  .lim-item{display:flex; gap:16px; padding:18px 0; border-top:1px solid var(--line-soft);}
+  .lim-item:first-child{border-top:none;}
+  .lim-item .mark{color:var(--amber); font-family:var(--font-mono); font-size:13px; padding-top:2px;}
+  .lim-item h3{font-size:15px; margin-bottom:4px;}
+  .lim-item p{margin:0; color:var(--muted); font-size:14.5px;}
+
+  footer{padding:48px 0; text-align:center;}
+  footer .wrap{display:flex; flex-direction:column; align-items:center; gap:14px;}
+  footer p{color:var(--muted); font-size:13px; font-family:var(--font-mono);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="dot"></span>fraud-detection.ml</a>
+    <nav>
+      <a href="#dataset">Dataset</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#models">Models</a>
+      <a href="#results">Results</a>
+      <a href="#demo">Try it</a>
+      <a href="https://github.com/YOUR-USERNAME/credit-card-fraud-detection" target="_blank" rel="noopener">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <div>
+        <div class="eyebrow">Applied Machine Learning · Fraud Detection</div>
+        <h1>Finding <span class="accent">93</span> frauds<br>in 1,000 transactions.</h1>
+        <p class="lede">A full pipeline for detecting credit card fraud in a dataset where fraud makes up under 10% of records — the exact imbalance problem every real fraud system has to solve. Built with SMOTE, Random Forest, and a recall-tuned decision threshold.</p>
+        <div class="hero-stats">
+          <div class="stat"><span class="n">73.5%</span><span class="l">Accuracy (tuned)</span></div>
+          <div class="stat"><span class="n">0.53</span><span class="l">Fraud recall</span></div>
+          <div class="stat"><span class="n">9.3%</span><span class="l">Fraud prevalence</span></div>
+        </div>
+        <div class="hero-ctas">
+          <a class="btn primary" href="#demo">Try the live demo</a>
+          <a class="btn" href="https://github.com/YOUR-USERNAME/credit-card-fraud-detection" target="_blank" rel="noopener">View source on GitHub</a>
+        </div>
+      </div>
+      <div>
+        <div class="tx-grid" id="txGrid" aria-hidden="true"></div>
+        <div class="tx-caption">
+          <span><span class="legend-dot" style="background:var(--blue-dim)"></span>907 legitimate</span>
+          <span><span class="legend-dot" style="background:var(--red)"></span>93 fraudulent</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROBLEM -->
+  <section id="problem">
+    <div class="wrap">
+      <div class="eyebrow reveal">The problem</div>
+      <h2 class="reveal" style="max-width:640px;">Fraud is rare, expensive, and getting harder to catch with fixed rules.</h2>
+      <p class="lede reveal">Industry reports put annual losses from credit card fraud in the billions of dollars, and most of it goes unnoticed until real damage is done. Three things make it a hard machine learning problem, not just a hard business problem.</p>
+      <div class="grid-3" style="margin-top:36px;">
+        <div class="card reveal">
+          <div class="k">01 — Data</div>
+          <h3>Class imbalance</h3>
+          <p>Fraud is the minority class by a wide margin. A model that predicts "not fraud" every time still looks 90%+ accurate — and is completely useless.</p>
+        </div>
+        <div class="card reveal">
+          <div class="k">02 — Speed</div>
+          <h3>Real-time constraints</h3>
+          <p>Detection has to happen before a transaction clears, not in a batch job the next morning. Every extra millisecond has a cost at scale.</p>
+        </div>
+        <div class="card reveal">
+          <div class="k">03 — Drift</div>
+          <h3>Evolving tactics</h3>
+          <p>Fixed if/then rules age out fast. Fraud patterns shift as soon as attackers learn what gets flagged, which is what makes this a learning problem.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DATASET -->
+  <section id="dataset">
+    <div class="wrap">
+      <div class="eyebrow reveal">The dataset</div>
+      <h2 class="reveal">1,000 transactions. 5 features. 1 target.</h2>
+      <p class="lede reveal">A deliberately lean feature set — no device fingerprint, no geolocation, no user history. That constraint is part of the story; see <a href="#limitations">Limitations</a>.</p>
+      <div class="card reveal" style="margin-top:32px; padding:0; overflow:hidden;">
+        <table>
+          <thead><tr><th>Feature</th><th>What it signals</th></tr></thead>
+          <tbody>
+            <tr><td class="feat">Transaction_Amount</td><td class="desc">Unusually high amounts can indicate fraud.</td></tr>
+            <tr><td class="feat">Transaction_Type</td><td class="desc">Online and international transactions are more fraud-prone than in-person ones.</td></tr>
+            <tr><td class="feat">Time_Since_Last</td><td class="desc">Very quick successive transactions can be suspicious.</td></tr>
+            <tr><td class="feat">Account_Age</td><td class="desc">Newer accounts are more vulnerable to takeover and synthetic fraud.</td></tr>
+            <tr><td class="feat">Transactions_Last_24h</td><td class="desc">A burst of activity in a short window can indicate abnormal behavior.</td></tr>
+            <tr><td class="feat">Is_Fraud</td><td class="desc">Target label — 1 = fraud, 0 = legitimate. 93 / 1,000 positive.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- PIPELINE -->
+  <section id="pipeline">
+    <div class="wrap">
+      <div class="eyebrow reveal">The pipeline</div>
+      <h2 class="reveal">Seven steps, in order.</h2>
+      <p class="lede reveal">Each step depends on the one before it — SMOTE runs only after the split, so synthetic points never leak into the test set.</p>
+      <div class="pipeline" style="margin-top:20px;">
+        <div class="pl-step reveal">
+          <div class="pl-num"><span class="n">1</span>Clean</div>
+          <div><h3>Data cleaning</h3><p>Check for nulls, verify dtypes, enforce consistency across every column before anything touches a model.</p></div>
+        </div>
+        <div class="pl-step reveal">
+          <div class="pl-num"><span class="n">2</span>Split</div>
+          <div><h3>Train/test split</h3><p>80 / 20 stratified split, done before any resampling — the 200-row test set stays untouched and realistically imbalanced.</p></div>
+        </div>
+        <div class="pl-step reveal">
+          <div class="pl-num"><span class="n">3</span>Scale</div>
+          <div><h3>Feature scaling</h3><p>StandardScaler fit on the training set's <span class="mono">Transaction_Amount</span>, then applied to both sets — so no single feature dominates on magnitude alone.</p></div>
+        </div>
+        <div class="pl-step reveal">
+          <div class="pl-num"><span class="n">4</span>Balance</div>
+          <div><h3>SMOTE oversampling</h3><p>Synthetic Minority Oversampling generates new, realistic fraud examples between real ones and their nearest neighbors — training-set only.</p></div>
+        </div>
+        <div class="pl-step reveal">
+          <div class="pl-num"><span class="n">5</span>Train</div>
+          <div><h3>Model training</h3><p>Logistic Regression as a linear baseline, Random Forest as the primary model, both trained on the SMOTE-balanced data.</p></div>
+        </div>
+        <div class="pl-step reveal">
+          <div class="pl-num"><span class="n">6</span>Tune</div>
+          <div><h3>Threshold tuning</h3><p>Sweep the decision threshold and pick the one that maximizes F1 while pushing recall up — a missed fraud costs more than a false alarm.</p></div>
+        </div>
+        <div class="pl-step reveal">
+          <div class="pl-num"><span class="n">7</span>Evaluate</div>
+          <div><h3>Evaluation</h3><p>Accuracy, precision, recall, F1, and ROC-AUC on the untouched test set — never accuracy alone on an imbalanced problem.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODELS -->
+  <section id="models">
+    <div class="wrap">
+      <div class="eyebrow reveal">Model selection</div>
+      <h2 class="reveal">Why Random Forest, and not the others.</h2>
+      <p class="lede reveal">Five candidates, one job: handle a small, nonlinear, tabular dataset without overfitting or needing heavy tuning.</p>
+      <div class="card reveal model-table" style="margin-top:28px; padding:0; overflow-x:auto;">
+        <table>
+          <thead><tr><th>Model</th><th>Strengths</th><th>Why not here</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="feat">Logistic Regression</td>
+              <td class="desc"><span class="tag good">Fast</span><span class="tag good">Interpretable</span></td>
+              <td class="desc">Assumes linear relationships — struggles with the nonlinear patterns fraud tends to show.</td>
+            </tr>
+            <tr>
+              <td class="feat">K-Nearest Neighbors</td>
+              <td class="desc"><span class="tag good">Simple</span></td>
+              <td class="desc">Computes distance to every point at inference time; sensitive to outliers and noise.</td>
+            </tr>
+            <tr>
+              <td class="feat">SVM</td>
+              <td class="desc"><span class="tag good">Complex boundaries</span></td>
+              <td class="desc">Slow to train and memory-intensive as the dataset grows.</td>
+            </tr>
+            <tr>
+              <td class="feat">Decision Tree</td>
+              <td class="desc"><span class="tag good">Fast</span><span class="tag good">Interpretable</span></td>
+              <td class="desc">Prone to overfitting; unstable — small data changes reshape the whole tree.</td>
+            </tr>
+            <tr class="row-selected">
+              <td class="feat">Random Forest ✓</td>
+              <td class="desc"><span class="tag good">Robust</span><span class="tag good">Feature importance</span><span class="tag good">Low tuning</span></td>
+              <td class="desc">Selected — an ensemble of trees solves the single-tree instability problem directly.</td>
+            </tr>
+            <tr>
+              <td class="feat">Neural Network</td>
+              <td class="desc"><span class="tag good">Powerful at scale</span></td>
+              <td class="desc">Needs far more data and tuning than 1,000 rows can support; hard to interpret; overkill for tabular data this size.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results">
+    <div class="wrap">
+      <div class="eyebrow reveal">Results</div>
+      <h2 class="reveal">Threshold tuning nearly doubles fraud recall.</h2>
+      <p class="lede reveal">Lowering the Random Forest's decision threshold from 0.5 to 0.38 trades some overall accuracy for catching far more real fraud — the right trade when a false alarm is an inconvenience and a missed fraud is a loss.</p>
+
+      <div class="metrics-row reveal" style="margin-top:32px;">
+        <div class="metric-card">
+          <div class="label">Accuracy</div>
+          <div class="value">73.5%</div>
+          <div class="sub">Random Forest, tuned threshold (0.38)</div>
+        </div>
+        <div class="metric-card win">
+          <div class="label">Fraud recall</div>
+          <div class="value">0.53</div>
+          <div class="sub">Up from 0.32 at the default 0.5 threshold</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">ROC-AUC</div>
+          <div class="value">0.704</div>
+          <div class="sub">Threshold-independent separability</div>
+        </div>
+      </div>
+
+      <div class="plot-grid reveal">
+        <div class="plot-card">
+          <img src="assets/class_distribution.png" alt="Bar chart showing 907 legitimate transactions versus 93 fraudulent transactions in the dataset">
+          <div class="cap">Class distribution — the imbalance problem, visualized</div>
+        </div>
+        <div class="plot-card">
+          <img src="assets/confusion_matrix_random_forest_tuned.png" alt="Confusion matrix for the threshold-tuned Random Forest on the test set">
+          <div class="cap">Confusion matrix — tuned Random Forest, test set</div>
+        </div>
+        <div class="plot-card">
+          <img src="assets/roc_curves.png" alt="ROC curves comparing Logistic Regression and Random Forest">
+          <div class="cap">ROC curves — Logistic Regression vs. Random Forest</div>
+        </div>
+        <div class="plot-card">
+          <img src="assets/feature_importance.png" alt="Bar chart of Random Forest feature importances">
+          <div class="cap">Feature importance — what the model actually weighs</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEMO -->
+  <section id="demo">
+    <div class="wrap">
+      <div class="eyebrow reveal">Try it</div>
+      <h2 class="reveal">Score a transaction yourself.</h2>
+      <p class="lede reveal">This runs the project's real trained Logistic Regression weights — entirely in your browser, nothing sent anywhere. The repository's primary model is the threshold-tuned Random Forest shown above; this is a lightweight, portable version of the same detector for you to poke at.</p>
+
+      <div class="demo-panel reveal" style="margin-top:28px;">
+        <div>
+          <div class="field">
+            <label>Transaction amount <span class="val" id="amountVal">$500</span></label>
+            <input type="range" id="amount" min="10" max="8000" step="10" value="500">
+          </div>
+          <div class="field">
+            <label>Transaction type</label>
+            <select id="txType">
+              <option value="0">In-person (chip/swipe)</option>
+              <option value="1" selected>Online</option>
+              <option value="2">Recurring payment</option>
+              <option value="3">International</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Time since last transaction <span class="val" id="timeVal">200 min</span></label>
+            <input type="range" id="timeSince" min="1" max="1500" step="1" value="200">
+          </div>
+          <div class="field">
+            <label>Account age <span class="val" id="ageVal">60 days</span></label>
+            <input type="range" id="accountAge" min="1" max="365" step="1" value="60">
+          </div>
+          <div class="field">
+            <label>Transactions in last 24h <span class="val" id="tx24hVal">8</span></label>
+            <input type="range" id="tx24h" min="0" max="40" step="1" value="8">
+          </div>
+          <div class="field">
+            <label>Decision threshold <span class="val" id="threshVal">0.50</span></label>
+            <input type="range" id="threshold" min="0.05" max="0.9" step="0.01" value="0.5">
+          </div>
+        </div>
+        <div class="demo-result">
+          <div class="label mono" style="color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.08em;">Fraud probability</div>
+          <div class="proba" id="probaOut">0%</div>
+          <div class="verdict clear" id="verdictOut">NOT FLAGGED</div>
+          <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+        </div>
+        <div class="demo-note">Move the threshold slider down and watch recall-style behavior emerge: more transactions get flagged, including more true fraud — and more false alarms. That trade-off is exactly what step 6 of the pipeline tunes.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIMITATIONS -->
+  <section id="limitations">
+    <div class="wrap grid-2">
+      <div>
+        <div class="eyebrow reveal">Honest limitations</div>
+        <h2 class="reveal">Where this system would fall over in production.</h2>
+        <div style="margin-top:24px;">
+          <div class="lim-item reveal">
+            <div class="mark">＋</div>
+            <div><h3>Imbalanced, synthetic-augmented data</h3><p>Even after SMOTE, synthetic fraud examples don't perfectly reflect real-world fraud behavior.</p></div>
+          </div>
+          <div class="lim-item reveal">
+            <div class="mark">＋</div>
+            <div><h3>Limited features</h3><p>No device ID, user history, or location data — the metadata real fraud systems lean on most.</p></div>
+          </div>
+          <div class="lim-item reveal">
+            <div class="mark">＋</div>
+            <div><h3>Black-box predictions</h3><p>Random Forest is accurate but doesn't explain individual decisions on its own.</p></div>
+          </div>
+          <div class="lim-item reveal">
+            <div class="mark">＋</div>
+            <div><h3>Static learning</h3><p>Trained once on historical data — it won't adapt automatically as fraud tactics change.</p></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="eyebrow reveal">Future work</div>
+        <h2 class="reveal">What comes next.</h2>
+        <div style="margin-top:24px;">
+          <div class="lim-item reveal">
+            <div class="mark" style="color:var(--green);">→</div>
+            <div><h3>Real-time scoring</h3><p>Move from batch evaluation to streaming inference on live transactions.</p></div>
+          </div>
+          <div class="lim-item reveal">
+            <div class="mark" style="color:var(--green);">→</div>
+            <div><h3>Richer features</h3><p>Device fingerprint, geo-location, and login history for a real accuracy jump.</p></div>
+          </div>
+          <div class="lim-item reveal">
+            <div class="mark" style="color:var(--green);">→</div>
+            <div><h3>Explainability</h3><p>SHAP or LIME to explain individual predictions and build reviewer trust.</p></div>
+          </div>
+          <div class="lim-item reveal">
+            <div class="mark" style="color:var(--green);">→</div>
+            <div><h3>Continuous learning</h3><p>An online-learning loop that updates as new transaction data arrives.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Credit Card Fraud Detection — built with scikit-learn, imbalanced-learn, and Random Forest · <a href="https://github.com/YOUR-USERNAME/credit-card-fraud-detection" target="_blank" rel="noopener">Source on GitHub</a> · MIT License</p>
+  </div>
+</footer>
+
+<script>
+  // ---------- Hero transaction grid ----------
+  (function(){
+    const grid = document.getElementById('txGrid');
+    const total = 1000, fraudCount = 93;
+    const fraudIdx = new Set();
+    while (fraudIdx.size < fraudCount) {
+      fraudIdx.add(Math.floor(Math.random() * total));
+    }
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < total; i++) {
+      const d = document.createElement('div');
+      d.className = 'tx-dot' + (fraudIdx.has(i) ? ' fraud' : '');
+      const row = Math.floor(i / 30);
+      const delay = (row * 14 + Math.random() * 90);
+      d.style.animationDelay = delay + 'ms';
+      frag.appendChild(d);
+    }
+    grid.appendChild(frag);
+  })();
+
+  // ---------- Scroll reveal ----------
+  (function(){
+    const els = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window)) { els.forEach(e => e.classList.add('in-view')); return; }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    els.forEach(e => io.observe(e));
+  })();
+
+  // ---------- Live fraud scorer (real trained Logistic Regression weights) ----------
+  (function(){
+    // Coefficients from src/train_model.py's LogisticRegression, in FEATURES order:
+    // [Transaction_Amount(scaled), Transaction_Type, Time_Since_Last, Account_Age, Transactions_Last_24h]
+    const COEF = [0.5758705889564197, -0.02310505779716011, -0.0016120435883054222, 0.012909587411000385, 0.08112504900418825];
+    const INTERCEPT = -0.3579365143896759;
+    const SCALER_MEAN = 1458.147775;
+    const SCALER_SCALE = 1155.0135576743457;
+
+    const amount = document.getElementById('amount');
+    const txType = document.getElementById('txType');
+    const timeSince = document.getElementById('timeSince');
+    const accountAge = document.getElementById('accountAge');
+    const tx24h = document.getElementById('tx24h');
+    const threshold = document.getElementById('threshold');
+
+    const amountVal = document.getElementById('amountVal');
+    const timeVal = document.getElementById('timeVal');
+    const ageVal = document.getElementById('ageVal');
+    const tx24hVal = document.getElementById('tx24hVal');
+    const threshVal = document.getElementById('threshVal');
+
+    const probaOut = document.getElementById('probaOut');
+    const verdictOut = document.getElementById('verdictOut');
+    const meterFill = document.getElementById('meterFill');
+
+    function sigmoid(z){ return 1 / (1 + Math.exp(-z)); }
+
+    function compute(){
+      const amt = parseFloat(amount.value);
+      const type = parseFloat(txType.value);
+      const time = parseFloat(timeSince.value);
+      const age = parseFloat(accountAge.value);
+      const t24 = parseFloat(tx24h.value);
+      const thresh = parseFloat(threshold.value);
+
+      const scaledAmt = (amt - SCALER_MEAN) / SCALER_SCALE;
+      const z = INTERCEPT
+        + COEF[0] * scaledAmt
+        + COEF[1] * type
+        + COEF[2] * time
+        + COEF[3] * age
+        + COEF[4] * t24;
+      const proba = sigmoid(z);
+
+      amountVal.textContent = '$' + amt.toLocaleString();
+      timeVal.textContent = time + ' min';
+      ageVal.textContent = age + ' days';
+      tx24hVal.textContent = t24;
+      threshVal.textContent = thresh.toFixed(2);
+
+      probaOut.textContent = (proba * 100).toFixed(1) + '%';
+      meterFill.style.width = (proba * 100).toFixed(1) + '%';
+
+      if (proba >= thresh) {
+        verdictOut.textContent = 'FLAGGED AS FRAUD';
+        verdictOut.className = 'verdict flag';
+      } else {
+        verdictOut.textContent = 'NOT FLAGGED';
+        verdictOut.className = 'verdict clear';
+      }
+    }
+
+    [amount, txType, timeSince, accountAge, tx24h, threshold].forEach(el => {
+      el.addEventListener('input', compute);
+    });
+    compute();
+  })();
+</script>
+
+</body>
+</html>
