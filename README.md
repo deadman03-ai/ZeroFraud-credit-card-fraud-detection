@@ -1,9 +1,9 @@
-# Credit Card Fraud Detection
+# ZeroFraud — Credit Card Fraud Detection
 
-A machine learning pipeline that flags fraudulent credit card transactions in a
-highly imbalanced dataset (~9.3% fraud), using SMOTE to correct class
-imbalance and a Random Forest classifier with a recall-tuned decision
-threshold to minimize missed fraud.
+**ZeroFraud** is a machine learning pipeline that flags fraudulent credit card
+transactions in a highly imbalanced dataset (~9.3% fraud), using SMOTE to
+correct class imbalance and a Random Forest classifier with a recall-tuned
+decision threshold to minimize missed fraud.
 
 **[Live demo / project site →](#)** &nbsp;·&nbsp; built as a hands-on
 exploration of the end-to-end fraud detection workflow: data prep, class
