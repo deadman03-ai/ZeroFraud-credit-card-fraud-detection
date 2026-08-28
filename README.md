@@ -10,6 +10,9 @@ exploration of the end-to-end fraud detection workflow: data prep, class
 imbalance handling, model comparison, evaluation, and the trade-offs that
 come with deploying this kind of system in the real world.
 
+The project site (`docs/index.html`) is a static, dependency-free page —
+deploy it with Vercel in under a minute, see [Deploying the site](#deploying-the-site).
+
 ---
 
 ## Results
@@ -108,6 +111,27 @@ python train_model.py --data ../data/transactions.csv --outdir ../outputs --mode
 python predict.py --amount 2500 --type 3 --time-since-last 40 \
     --account-age 12 --tx-last-24h 15
 ```
+
+## Deploying the site
+
+The project site is plain static HTML/CSS/JS (`docs/index.html`) — no build
+step, no server. `vercel.json` at the repo root already points Vercel at the
+`docs/` folder.
+
+**Option A — Vercel CLI (fastest, no GitHub required):**
+```bash
+npm i -g vercel        # one-time install
+cd credit-card-fraud-detection
+vercel                 # first deploy — follow the prompts, accept the defaults
+vercel --prod          # promote to your production URL
+```
+
+**Option B — Vercel dashboard (auto-redeploys on every push):**
+1. Push this repo to GitHub (see below).
+2. [vercel.com/new](https://vercel.com/new) → Import your GitHub repo.
+3. Framework Preset: **Other**. Vercel reads `vercel.json` and serves `docs/`
+   automatically — no config needed.
+4. Deploy. Every future push to `main` redeploys automatically.
 
 ## Why Random Forest
 
