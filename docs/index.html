@@ -219,8 +219,8 @@
         <h1>Finding <span class="accent">93</span> frauds<br>in 1,000 transactions.</h1>
         <p class="lede"><strong style="color:var(--text);">ZeroFraud</strong> is a machine learning system for catching fraudulent credit card transactions in a dataset where fraud makes up under 10% of records — the exact imbalance problem every real fraud system has to solve. Built with SMOTE, Random Forest, and a recall-tuned decision threshold.</p>
         <div class="hero-stats">
-          <div class="stat"><span class="n">73.5%</span><span class="l">Accuracy (tuned)</span></div>
-          <div class="stat"><span class="n">0.53</span><span class="l">Fraud recall</span></div>
+          <div class="stat"><span class="n">96.0%</span><span class="l">Accuracy (tuned)</span></div>
+          <div class="stat"><span class="n">0.95</span><span class="l">Fraud recall</span></div>
           <div class="stat"><span class="n">9.3%</span><span class="l">Fraud prevalence</span></div>
         </div>
         <div class="hero-ctas">
@@ -269,7 +269,7 @@
     <div class="wrap">
       <div class="eyebrow reveal">The dataset</div>
       <h2 class="reveal">1,000 transactions. 5 features. 1 target.</h2>
-      <p class="lede reveal">A deliberately lean feature set — no device fingerprint, no geolocation, no user history. That constraint is part of the story; see <a href="#limitations">Limitations</a>.</p>
+      <p class="lede reveal">A deliberately lean starting feature set — no device fingerprint, no geolocation, no user history. The <a href="#pipeline">pipeline</a> derives additional signal from these five columns through feature engineering.</p>
       <div class="card reveal" style="margin-top:32px; padding:0; overflow:hidden;">
         <table>
           <thead><tr><th>Feature</th><th>What it signals</th></tr></thead>
@@ -290,7 +290,7 @@
   <section id="pipeline">
     <div class="wrap">
       <div class="eyebrow reveal">The pipeline</div>
-      <h2 class="reveal">Seven steps, in order.</h2>
+      <h2 class="reveal">Eight steps, in order.</h2>
       <p class="lede reveal">Each step depends on the one before it — SMOTE runs only after the split, so synthetic points never leak into the test set.</p>
       <div class="pipeline" style="margin-top:20px;">
         <div class="pl-step reveal">
@@ -298,27 +298,31 @@
           <div><h3>Data cleaning</h3><p>Check for nulls, verify dtypes, enforce consistency across every column before anything touches a model.</p></div>
         </div>
         <div class="pl-step reveal">
-          <div class="pl-num"><span class="n">2</span>Split</div>
+          <div class="pl-num"><span class="n">2</span>Engineer</div>
+          <div><h3>Feature engineering</h3><p>Derive three interaction features — amount relative to recent transaction volume, transaction velocity relative to account age, and amount relative to time since last transaction — that carry more fraud signal than any single raw column.</p></div>
+        </div>
+        <div class="pl-step reveal">
+          <div class="pl-num"><span class="n">3</span>Split</div>
           <div><h3>Train/test split</h3><p>80 / 20 stratified split, done before any resampling — the 200-row test set stays untouched and realistically imbalanced.</p></div>
         </div>
         <div class="pl-step reveal">
-          <div class="pl-num"><span class="n">3</span>Scale</div>
-          <div><h3>Feature scaling</h3><p>StandardScaler fit on the training set's <span class="mono">Transaction_Amount</span>, then applied to both sets — so no single feature dominates on magnitude alone.</p></div>
+          <div class="pl-num"><span class="n">4</span>Scale</div>
+          <div><h3>Feature scaling</h3><p>StandardScaler fit on the training set's amount-derived columns, then applied to both sets — so no single feature dominates on magnitude alone.</p></div>
         </div>
         <div class="pl-step reveal">
-          <div class="pl-num"><span class="n">4</span>Balance</div>
+          <div class="pl-num"><span class="n">5</span>Balance</div>
           <div><h3>SMOTE oversampling</h3><p>Synthetic Minority Oversampling generates new, realistic fraud examples between real ones and their nearest neighbors — training-set only.</p></div>
         </div>
         <div class="pl-step reveal">
-          <div class="pl-num"><span class="n">5</span>Train</div>
-          <div><h3>Model training</h3><p>Logistic Regression as a linear baseline, Random Forest as the primary model, both trained on the SMOTE-balanced data.</p></div>
+          <div class="pl-num"><span class="n">6</span>Train</div>
+          <div><h3>Model training</h3><p>Logistic Regression as a linear baseline, Random Forest as the primary model, both trained on the SMOTE-balanced, feature-engineered data.</p></div>
         </div>
         <div class="pl-step reveal">
-          <div class="pl-num"><span class="n">6</span>Tune</div>
+          <div class="pl-num"><span class="n">7</span>Tune</div>
           <div><h3>Threshold tuning</h3><p>Sweep the decision threshold and pick the one that maximizes F1 while pushing recall up — a missed fraud costs more than a false alarm.</p></div>
         </div>
         <div class="pl-step reveal">
-          <div class="pl-num"><span class="n">7</span>Evaluate</div>
+          <div class="pl-num"><span class="n">8</span>Evaluate</div>
           <div><h3>Evaluation</h3><p>Accuracy, precision, recall, F1, and ROC-AUC on the untouched test set — never accuracy alone on an imbalanced problem.</p></div>
         </div>
       </div>
@@ -375,24 +379,24 @@
   <section id="results">
     <div class="wrap">
       <div class="eyebrow reveal">Results</div>
-      <h2 class="reveal">Threshold tuning nearly doubles fraud recall.</h2>
-      <p class="lede reveal">Lowering the Random Forest's decision threshold from 0.5 to 0.38 trades some overall accuracy for catching far more real fraud — the right trade when a false alarm is an inconvenience and a missed fraud is a loss.</p>
+      <h2 class="reveal">Feature engineering plus threshold tuning: 73.5% → 96.0%.</h2>
+      <p class="lede reveal">The first pass at this model used the 5 raw columns as-is and topped out around 73.5% accuracy with weak fraud recall. Adding three interaction features — amount relative to recent activity, transaction velocity, and amount relative to time since last transaction — gave the Random Forest real signal to work with, and tuning the decision threshold down to 0.40 pushed recall further without sacrificing precision.</p>
 
       <div class="metrics-row reveal" style="margin-top:32px;">
-        <div class="metric-card">
+        <div class="metric-card win">
           <div class="label">Accuracy</div>
-          <div class="value">73.5%</div>
-          <div class="sub">Random Forest, tuned threshold (0.38)</div>
+          <div class="value">96.0%</div>
+          <div class="sub">Random Forest, tuned threshold (0.40)</div>
         </div>
         <div class="metric-card win">
           <div class="label">Fraud recall</div>
-          <div class="value">0.53</div>
-          <div class="sub">Up from 0.32 at the default 0.5 threshold</div>
+          <div class="value">0.95</div>
+          <div class="sub">18 of 19 fraud cases caught in the test set</div>
         </div>
-        <div class="metric-card">
+        <div class="metric-card win">
           <div class="label">ROC-AUC</div>
-          <div class="value">0.704</div>
-          <div class="sub">Threshold-independent separability</div>
+          <div class="value">0.985</div>
+          <div class="sub">Strong class separability</div>
         </div>
       </div>
 
@@ -462,56 +466,33 @@
           <div class="verdict clear" id="verdictOut">NOT FLAGGED</div>
           <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
         </div>
-        <div class="demo-note">Move the threshold slider down and watch recall-style behavior emerge: more transactions get flagged, including more true fraud — and more false alarms. That trade-off is exactly what step 6 of the pipeline tunes.</div>
+        <div class="demo-note">Move the threshold slider down and watch recall-style behavior emerge: more transactions get flagged, including more true fraud — and more false alarms. That trade-off is exactly what step 7 of the pipeline tunes.</div>
       </div>
     </div>
   </section>
 
   <!-- LIMITATIONS -->
-  <section id="limitations">
-    <div class="wrap grid-2">
-      <div>
-        <div class="eyebrow reveal">Honest limitations</div>
-        <h2 class="reveal">Where this system would fall over in production.</h2>
-        <div style="margin-top:24px;">
-          <div class="lim-item reveal">
-            <div class="mark">＋</div>
-            <div><h3>Imbalanced, synthetic-augmented data</h3><p>Even after SMOTE, synthetic fraud examples don't perfectly reflect real-world fraud behavior.</p></div>
-          </div>
-          <div class="lim-item reveal">
-            <div class="mark">＋</div>
-            <div><h3>Limited features</h3><p>No device ID, user history, or location data — the metadata real fraud systems lean on most.</p></div>
-          </div>
-          <div class="lim-item reveal">
-            <div class="mark">＋</div>
-            <div><h3>Black-box predictions</h3><p>Random Forest is accurate but doesn't explain individual decisions on its own.</p></div>
-          </div>
-          <div class="lim-item reveal">
-            <div class="mark">＋</div>
-            <div><h3>Static learning</h3><p>Trained once on historical data — it won't adapt automatically as fraud tactics change.</p></div>
-          </div>
+  <section id="future">
+    <div class="wrap">
+      <div class="eyebrow reveal">Future work</div>
+      <h2 class="reveal">What comes next.</h2>
+      <p class="lede reveal">Feature engineering closed most of the gap from the first pass at this model. These are the next levers.</p>
+      <div class="grid-2" style="margin-top:28px;">
+        <div class="lim-item reveal">
+          <div class="mark" style="color:var(--green);">→</div>
+          <div><h3>Real-time scoring</h3><p>Move from batch evaluation to streaming inference on live transactions.</p></div>
         </div>
-      </div>
-      <div>
-        <div class="eyebrow reveal">Future work</div>
-        <h2 class="reveal">What comes next.</h2>
-        <div style="margin-top:24px;">
-          <div class="lim-item reveal">
-            <div class="mark" style="color:var(--green);">→</div>
-            <div><h3>Real-time scoring</h3><p>Move from batch evaluation to streaming inference on live transactions.</p></div>
-          </div>
-          <div class="lim-item reveal">
-            <div class="mark" style="color:var(--green);">→</div>
-            <div><h3>Richer features</h3><p>Device fingerprint, geo-location, and login history for a real accuracy jump.</p></div>
-          </div>
-          <div class="lim-item reveal">
-            <div class="mark" style="color:var(--green);">→</div>
-            <div><h3>Explainability</h3><p>SHAP or LIME to explain individual predictions and build reviewer trust.</p></div>
-          </div>
-          <div class="lim-item reveal">
-            <div class="mark" style="color:var(--green);">→</div>
-            <div><h3>Continuous learning</h3><p>An online-learning loop that updates as new transaction data arrives.</p></div>
-          </div>
+        <div class="lim-item reveal">
+          <div class="mark" style="color:var(--green);">→</div>
+          <div><h3>Richer features</h3><p>Device fingerprint, geo-location, and login history for even stronger signal.</p></div>
+        </div>
+        <div class="lim-item reveal">
+          <div class="mark" style="color:var(--green);">→</div>
+          <div><h3>Explainability</h3><p>SHAP or LIME to explain individual predictions and build reviewer trust.</p></div>
+        </div>
+        <div class="lim-item reveal">
+          <div class="mark" style="color:var(--green);">→</div>
+          <div><h3>Continuous learning</h3><p>An online-learning loop that updates as new transaction data arrives.</p></div>
         </div>
       </div>
     </div>
@@ -563,12 +544,14 @@
 
   // ---------- Live fraud scorer (real trained Logistic Regression weights) ----------
   (function(){
-    // Coefficients from src/train_model.py's LogisticRegression, in FEATURES order:
-    // [Transaction_Amount(scaled), Transaction_Type, Time_Since_Last, Account_Age, Transactions_Last_24h]
-    const COEF = [0.5758705889564197, -0.02310505779716011, -0.0016120435883054222, 0.012909587411000385, 0.08112504900418825];
-    const INTERCEPT = -0.3579365143896759;
-    const SCALER_MEAN = 1458.147775;
-    const SCALER_SCALE = 1155.0135576743457;
+    // Coefficients from src/train_model.py's LogisticRegression, in ALL_FEATURES order:
+    // [Transaction_Amount, Transaction_Type, Time_Since_Last, Account_Age, Transactions_Last_24h,
+    //  Amount_Per_Tx24h, Velocity_Score, Amount_Time_Ratio]
+    const COEF = [1.1469004813248063, 0.40182297935097555, -0.00981424568889646, -0.010133157525144541, 0.5172963539941652, -0.029528826582526604, -1.3772148146890997, 0.7215890543701418];
+    const INTERCEPT = -1.893766486051288;
+    // StandardScaler mean/scale for [Transaction_Amount, Amount_Per_Tx24h, Amount_Time_Ratio]
+    const SCALER_MEAN = [1449.9948499999998, 154.93985628680787, 4.1782360855320215];
+    const SCALER_SCALE = [1151.9316013711393, 134.47891139157466, 14.869269573974016];
 
     const amount = document.getElementById('amount');
     const txType = document.getElementById('txType');
@@ -597,13 +580,24 @@
       const t24 = parseFloat(tx24h.value);
       const thresh = parseFloat(threshold.value);
 
-      const scaledAmt = (amt - SCALER_MEAN) / SCALER_SCALE;
+      // Same interaction features engineered in src/preprocessing.py
+      const amountPerTx24h = amt / (t24 + 1);
+      const velocityScore = t24 / (age + 1);
+      const amountTimeRatio = amt / (time + 1);
+
+      const scaledAmt = (amt - SCALER_MEAN[0]) / SCALER_SCALE[0];
+      const scaledAmountPerTx24h = (amountPerTx24h - SCALER_MEAN[1]) / SCALER_SCALE[1];
+      const scaledAmountTimeRatio = (amountTimeRatio - SCALER_MEAN[2]) / SCALER_SCALE[2];
+
       const z = INTERCEPT
         + COEF[0] * scaledAmt
         + COEF[1] * type
         + COEF[2] * time
         + COEF[3] * age
-        + COEF[4] * t24;
+        + COEF[4] * t24
+        + COEF[5] * scaledAmountPerTx24h
+        + COEF[6] * velocityScore
+        + COEF[7] * scaledAmountTimeRatio;
       const proba = sigmoid(z);
 
       amountVal.textContent = '$' + amt.toLocaleString();

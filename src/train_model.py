@@ -30,7 +30,7 @@ from sklearn.metrics import (
     roc_curve,
 )
 
-from preprocessing import full_pipeline, FEATURES
+from preprocessing import full_pipeline, ALL_FEATURES
 
 
 def evaluate_model(name, model, X_test, y_test):
@@ -123,7 +123,7 @@ def main():
     models = {
         "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
         "Random Forest": RandomForestClassifier(
-            n_estimators=300, max_depth=8, min_samples_leaf=3, random_state=42
+            n_estimators=400, max_depth=12, min_samples_leaf=2, random_state=42
         ),
     }
 
@@ -144,7 +144,7 @@ def main():
         joblib.dump(model, os.path.join(args.modeldir, f"{slug}.pkl"))
 
     plot_roc_curves(roc_curves, os.path.join(args.outdir, "plots", "roc_curves.png"))
-    plot_feature_importance(models["Random Forest"], FEATURES,
+    plot_feature_importance(models["Random Forest"], ALL_FEATURES,
                              os.path.join(args.outdir, "plots", "feature_importance.png"))
     joblib.dump(data["scaler"], os.path.join(args.modeldir, "scaler.pkl"))
 

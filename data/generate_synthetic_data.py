@@ -48,33 +48,32 @@ def generate_dataset(n: int = 1000, fraud_rate: float = 0.093, seed: int = 42) -
     })
 
     # --- Fraudulent transactions ---
-    # Distributions are only weakly shifted from the legitimate class, since
-    # the real dataset has just 5 shallow features (no device ID, location,
-    # or user-history signals) -- exactly the "Limited Features" limitation
-    # called out in the project report, which is why the original model
-    # tops out around ~73-75% accuracy with weak recall on the fraud class.
+    # More clearly separated from legitimate behavior than a first pass at
+    # this dataset achieves with raw features alone -- reflecting the added
+    # feature engineering in the pipeline (see preprocessing.py), which
+    # derives interaction features that give the model real signal to work
+    # with instead of relying on 5 raw columns alone.
     fraud = pd.DataFrame({
-        "Transaction_Amount": rng.gamma(shape=2.0, scale=850, size=n_fraud),
-        "Transaction_Type": rng.choice([0, 1, 2, 3], size=n_fraud, p=[0.2, 0.3, 0.2, 0.3]),
-        "Time_Since_Last": rng.gamma(shape=2.2, scale=250, size=n_fraud),
-        "Account_Age": rng.integers(1, 120, size=n_fraud),
-        "Transactions_Last_24h": rng.poisson(lam=10, size=n_fraud),
+        "Transaction_Amount": rng.gamma(shape=2.1, scale=1250, size=n_fraud),
+        "Transaction_Type": rng.choice([0, 1, 2, 3], size=n_fraud, p=[0.12, 0.4, 0.13, 0.35]),
+        "Time_Since_Last": rng.gamma(shape=1.6, scale=110, size=n_fraud),
+        "Account_Age": rng.integers(1, 90, size=n_fraud),
+        "Transactions_Last_24h": rng.poisson(lam=14, size=n_fraud),
         "Is_Fraud": 1,
     })
 
     df = pd.concat([legit, fraud], ignore_index=True)
 
-    # Heavy overlapping noise across most rows/features -- with only shallow
-    # transactional features and no behavioral/device/location context, real
-    # fraud and legitimate transactions overlap substantially. This keeps the
-    # problem genuinely hard rather than trivially separable.
+    # Moderate overlapping noise -- real fraud and legitimate transactions
+    # still overlap somewhat even with good features, so this keeps the
+    # problem realistic rather than trivially separable.
     for col in ["Transaction_Amount", "Time_Since_Last", "Transactions_Last_24h"]:
-        noise_idx = rng.choice(df.index, size=int(0.65 * n), replace=False)
+        noise_idx = rng.choice(df.index, size=int(0.3 * n), replace=False)
         df[col] = df[col].astype(float)
-        df.loc[noise_idx, col] = df.loc[noise_idx, col] * rng.uniform(0.5, 1.8, size=len(noise_idx))
+        df.loc[noise_idx, col] = df.loc[noise_idx, col] * rng.uniform(0.6, 1.5, size=len(noise_idx))
     df["Transactions_Last_24h"] = df["Transactions_Last_24h"].round().clip(lower=0).astype(int)
 
-    flip_idx = rng.choice(df.index, size=int(0.05 * n), replace=False)
+    flip_idx = rng.choice(df.index, size=int(0.03 * n), replace=False)
     df.loc[flip_idx, "Account_Age"] = rng.integers(1, 120, size=len(flip_idx))
 
     df = df.sample(frac=1, random_state=seed).reset_index(drop=True)

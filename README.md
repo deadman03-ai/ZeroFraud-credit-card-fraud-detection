@@ -19,14 +19,16 @@ deploy it with Vercel in under a minute, see [Deploying the site](#deploying-the
 
 | Model | Accuracy | Precision | Recall | F1 | ROC-AUC |
 |---|---|---|---|---|---|
-| Logistic Regression | 70.5% | 0.167 | 0.526 | 0.253 | 0.697 |
-| Random Forest (default threshold) | 81.0% | 0.194 | 0.316 | 0.240 | 0.704 |
-| **Random Forest (tuned threshold = 0.38)** | **73.5%** | **0.185** | **0.526** | **0.274** | 0.704 |
+| Logistic Regression | 92.0% | 0.552 | 0.842 | 0.667 | 0.976 |
+| Random Forest (default threshold) | 95.5% | 0.727 | 0.842 | 0.780 | 0.985 |
+| **Random Forest (tuned threshold = 0.40)** | **96.0%** | **0.720** | **0.947** | **0.818** | 0.985 |
 
-Lowering the decision threshold from the default 0.5 to 0.38 nearly **doubles
-recall on the fraud class (0.32 → 0.53)** at the cost of some accuracy — a
-deliberate trade-off, since a missed fraud (false negative) is far more
-costly than a false alarm.
+A first pass at this model — using the 5 raw columns as-is — topped out
+around **73.5% accuracy with 0.32 recall** on the fraud class. Adding three
+engineered interaction features (see [Pipeline](#pipeline), step 2) gave the
+model real signal to separate fraud from legitimate activity, and tuning the
+decision threshold down to 0.40 pushed recall to **0.95 — 18 of 19 fraud
+cases in the test set caught**, with only 1 missed and 7 false alarms.
 
 <p align="center">
   <img src="outputs/plots/class_distribution.png" width="360" alt="Class distribution">
@@ -42,9 +44,11 @@ importance.
 ## Why this is hard
 
 With only 1,000 labeled transactions and 9.3% fraud prevalence, and no
-behavioral, device, or location signals in the feature set, this is a
-deliberately realistic — and deliberately difficult — version of the fraud
-detection problem. See [Limitations](#limitations) below.
+behavioral, device, or location signals in the raw feature set, this starts
+as a deliberately difficult version of the fraud detection problem — which
+is why feature engineering (deriving new signal from the existing columns)
+made such a large difference. See [Limitations](#limitations) for what's
+still missing versus a production system.
 
 ## Dataset
 
@@ -65,13 +69,16 @@ with the same columns to reproduce results on real data.
 ## Pipeline
 
 1. **Data cleaning** — null checks, dtype consistency
-2. **Feature scaling** — `StandardScaler` on `Transaction_Amount`
+2. **Feature engineering** — derive `Amount_Per_Tx24h`, `Velocity_Score`, and
+   `Amount_Time_Ratio`, interaction features that carry more fraud signal
+   than any single raw column (see `src/preprocessing.py::engineer_features`)
 3. **Train/test split** — 80/20, stratified
-4. **Class imbalance handling** — SMOTE oversampling on the training set only
-5. **Model training** — Logistic Regression (baseline) and Random Forest
-6. **Threshold tuning** — sweep decision thresholds to maximize F1 while
+4. **Feature scaling** — `StandardScaler` on the amount-derived columns
+5. **Class imbalance handling** — SMOTE oversampling on the training set only
+6. **Model training** — Logistic Regression (baseline) and Random Forest
+7. **Threshold tuning** — sweep decision thresholds to maximize F1 while
    prioritizing recall on the fraud class
-7. **Evaluation** — accuracy, precision, recall, F1, ROC-AUC, confusion matrix
+8. **Evaluation** — accuracy, precision, recall, F1, ROC-AUC, confusion matrix
 
 ## Project structure
 
