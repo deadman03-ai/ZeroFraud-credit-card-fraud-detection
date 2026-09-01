@@ -168,7 +168,3 @@ a small, tabular, mixed-signal dataset like this one. Full comparison in
 - Model explainability via SHAP or LIME
 - Continuous/online learning as new transactions arrive
 - XGBoost / gradient boosting comparison
-
-## License
-
-[MIT](LICENSE)
